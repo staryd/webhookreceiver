@@ -1,5 +1,6 @@
 using System.Net;
 using Microsoft.AspNetCore.Mvc;
+using WebhookReceiver;
 
 var builder = WebApplication.CreateBuilder(args);
 var settings = builder.Configuration.GetSection("Settings").Get<Settings>() ?? new Settings();
@@ -15,7 +16,7 @@ Console.WriteLine($"Temp file root path: {settings.GetUserTempPath()}");
 app.MapGet("/", () => Results.Ok());
 
 
-app.MapPost("/{id}", async (HttpRequest request, string id, [FromBody]object body, [FromQuery]int? returnStatus, [FromQuery]string? code = "") =>
+app.MapPost("/{*id}", async (HttpRequest request, string id, [FromBody]object body, [FromQuery]int? returnStatus, [FromQuery]string? code = "") =>
 	{
 		if (!request.Headers.ContainsKey("Authorization"))
 		{
@@ -36,7 +37,8 @@ app.MapPost("/{id}", async (HttpRequest request, string id, [FromBody]object bod
 			}
 		}
 
-		var prefix = string.IsNullOrWhiteSpace(id) ? string.Empty : $"{id}-";
+		var prefix = string.IsNullOrWhiteSpace(id) ? string.Empty : $"{Utils.SanitizeFileName(id)}-";
+	
 		var localFilePath = Path.Combine(settings.GetUserTempPath(), $"{prefix}{Guid.NewGuid()}.txt");
 		var requestInfo = $"{id}{request.QueryString}{Environment.NewLine}{Environment.NewLine}{body}";
 
