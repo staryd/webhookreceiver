@@ -17,8 +17,24 @@ app.MapGet("/", () => Results.Ok());
 
 app.MapPost("/{id}", async (HttpRequest request, string id, [FromBody]object body, [FromQuery]int? returnStatus, [FromQuery]string? code = "") =>
 	{
-		if (!string.Equals(code, settings.AuthCode))
-			return Results.Unauthorized();
+		if (!request.Headers.ContainsKey("Authorization"))
+		{
+			if (!string.Equals(code, settings.AuthCode))
+				return Results.Unauthorized();
+		}
+		else {
+			var authHeader = request.Headers["Authorization"][0];
+			if (authHeader?.StartsWith("Bearer ") == true)
+			{
+				var token = authHeader?.Substring("Bearer ".Length);
+				if (!string.Equals(token, settings.AuthCode))
+					return Results.Unauthorized();
+			}
+			else  
+			{
+				return Results.Unauthorized();
+			}
+		}
 
 		var prefix = string.IsNullOrWhiteSpace(id) ? string.Empty : $"{id}-";
 		var localFilePath = Path.Combine(settings.GetUserTempPath(), $"{prefix}{Guid.NewGuid()}.txt");
